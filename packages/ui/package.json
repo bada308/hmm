@@ -6,9 +6,6 @@
     ".": "./src/index.ts",
     "./*": "./src/*.tsx"
   },
-  "scripts": {
-    "lint": "eslint . --max-warnings 0"
-  },
   "devDependencies": {
     "@repo/config": "workspace:*",
     "@types/react": "^19.0.2",

@@ -7,15 +7,34 @@ export interface AppState {
   toggleTheme: () => void;
 }
 
+const updateDOMTheme = (theme: 'light' | 'dark') => {
+  if (typeof document !== 'undefined') {
+    document.documentElement.classList.toggle('dark', theme === 'dark');
+  }
+};
+
 export const useAppStore = create<AppState>()(
   persist(
     (set) => ({
       theme: 'light',
-      setTheme: (theme) => set({ theme }),
-      toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
+      setTheme: (theme) => {
+        updateDOMTheme(theme);
+        set({ theme });
+      },
+      toggleTheme: () =>
+        set((state) => {
+          const newTheme = state.theme === 'light' ? 'dark' : 'light';
+          updateDOMTheme(newTheme);
+          return { theme: newTheme };
+        }),
     }),
     {
       name: 'app-storage',
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          updateDOMTheme(state.theme);
+        }
+      },
     }
   )
 );

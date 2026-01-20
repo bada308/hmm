@@ -6,9 +6,6 @@
     ".": "./src/index.ts",
     "./*": "./src/*.ts"
   },
-  "scripts": {
-    "lint": "eslint . --max-warnings 0"
-  },
   "dependencies": {
     "zustand": "^5.0.2"
   },
