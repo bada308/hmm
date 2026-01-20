@@ -1,0 +1,15 @@
+{
+  "name": "@repo/config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tailwind": "./tailwind.config.ts",
+    "./postcss": "./postcss.config.cjs",
+    "./typescript/base": "./tsconfig.base.json",
+    "./typescript/nextjs": "./tsconfig.nextjs.json"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}
