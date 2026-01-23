@@ -1,4 +1,6 @@
-export { GoalCell } from './GoalCell';
-export { GridSizeSelector } from './GridSizeSelector';
+export { Cell } from './Cell';
+export { SubGrid } from './SubGrid';
 export { MandalartGrid } from './MandalartGrid';
-export { Progress } from './Progress';
+export { MandalartCard } from './MandalartCard';
+export { ThemeSelector } from './ThemeSelector';
+export { ExportButtons } from './ExportButtons';
