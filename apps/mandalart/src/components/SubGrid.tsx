@@ -100,10 +100,11 @@ export function SubGrid({
 
   return (
     <div
-      className="grid grid-cols-3 gap-1 p-1.5 rounded-xl"
+      className={`grid grid-cols-3 gap-1 p-2 rounded-xl ${isCenter ? 'ring-2' : ''}`}
       style={{
-        backgroundColor: isCenter ? theme.secondary : 'transparent',
-        boxShadow: isCenter ? `0 2px 8px ${theme.border}40` : 'none',
+        backgroundColor: isCenter ? theme.primary : 'transparent',
+        boxShadow: isCenter ? `0 4px 16px ${theme.border}60` : 'none',
+        ['--tw-ring-color' as string]: isCenter ? theme.text : 'transparent',
       }}
     >
       {[0, 1, 2].map((row) =>

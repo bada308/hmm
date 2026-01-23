@@ -66,7 +66,7 @@ export const MandalartGrid = forwardRef<HTMLDivElement, MandalartGridProps>(
     return (
       <div
         ref={ref}
-        className="grid grid-cols-3 gap-2 md:gap-3 p-3 md:p-4 rounded-2xl"
+        className="grid grid-cols-3 gap-3 md:gap-4 p-4 md:p-5 rounded-2xl"
         style={{
           backgroundColor: theme.background,
           border: `2px solid ${theme.border}`,
