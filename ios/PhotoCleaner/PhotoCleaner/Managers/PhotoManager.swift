@@ -12,6 +12,9 @@ class PhotoManager: ObservableObject {
     @Published var authorizationStatus: PHAuthorizationStatus = .notDetermined
     @Published var selectedDate: Date = Date()
 
+    // Undo history stack
+    private var undoStack: [(index: Int, deletedAsset: PHAsset?)] = []
+
     var currentPhoto: PhotoAsset? {
         guard currentIndex < todayPhotos.count else { return nil }
         return todayPhotos[currentIndex]
@@ -29,6 +32,10 @@ class PhotoManager: ObservableObject {
         currentIndex - assetsToDelete.count
     }
 
+    var canUndo: Bool {
+        !undoStack.isEmpty
+    }
+
     // MARK: - Authorization
 
     func requestAuthorization() async {
@@ -39,43 +46,47 @@ class PhotoManager: ObservableObject {
         }
     }
 
-    // MARK: - Load Photos
+    // MARK: - Load Photos (background thread for enumeration)
 
     func loadPhotosForDate(_ date: Date) async {
         isLoading = true
         selectedDate = date
         currentIndex = 0
         assetsToDelete = []
+        undoStack = []
 
         let calendar = Calendar.current
         let month = calendar.component(.month, from: date)
         let day = calendar.component(.day, from: date)
 
-        let fetchOptions = PHFetchOptions()
-        fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
+        // Run heavy photo enumeration off main thread
+        let matched = await Task.detached(priority: .userInitiated) {
+            let fetchOptions = PHFetchOptions()
+            fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
 
-        let allPhotos = PHAsset.fetchAssets(with: .image, options: fetchOptions)
+            let allPhotos = PHAsset.fetchAssets(with: .image, options: fetchOptions)
+            var result: [PhotoAsset] = []
 
-        var matched: [PhotoAsset] = []
+            allPhotos.enumerateObjects { asset, _, _ in
+                guard let creationDate = asset.creationDate else { return }
+                let assetMonth = calendar.component(.month, from: creationDate)
+                let assetDay = calendar.component(.day, from: creationDate)
 
-        allPhotos.enumerateObjects { asset, _, _ in
-            guard let creationDate = asset.creationDate else { return }
-            let assetMonth = calendar.component(.month, from: creationDate)
-            let assetDay = calendar.component(.day, from: creationDate)
-
-            if assetMonth == month && assetDay == day {
-                let year = calendar.component(.year, from: creationDate)
-                matched.append(PhotoAsset(
-                    id: asset.localIdentifier,
-                    asset: asset,
-                    creationDate: creationDate,
-                    year: year
-                ))
+                if assetMonth == month && assetDay == day {
+                    let year = calendar.component(.year, from: creationDate)
+                    result.append(PhotoAsset(
+                        id: asset.localIdentifier,
+                        asset: asset,
+                        creationDate: creationDate,
+                        year: year
+                    ))
+                }
             }
-        }
 
-        // Sort by year descending (newest first)
-        matched.sort { $0.creationDate > $1.creationDate }
+            // Sort by year descending (newest first)
+            result.sort { $0.creationDate > $1.creationDate }
+            return result
+        }.value
 
         todayPhotos = matched
         isLoading = false
@@ -85,17 +96,32 @@ class PhotoManager: ObservableObject {
 
     func keepPhoto() {
         guard currentIndex < todayPhotos.count else { return }
-        withAnimation(.easeInOut(duration: 0.3)) {
-            currentIndex += 1
-        }
+        undoStack.append((index: currentIndex, deletedAsset: nil))
+        currentIndex += 1
+        triggerHaptic(.light)
     }
 
     func markForDeletion() {
         guard currentIndex < todayPhotos.count else { return }
-        assetsToDelete.append(todayPhotos[currentIndex].asset)
-        withAnimation(.easeInOut(duration: 0.3)) {
-            currentIndex += 1
+        let asset = todayPhotos[currentIndex].asset
+        undoStack.append((index: currentIndex, deletedAsset: asset))
+        assetsToDelete.append(asset)
+        currentIndex += 1
+        triggerHaptic(.medium)
+    }
+
+    // MARK: - Undo
+
+    func undo() {
+        guard let last = undoStack.popLast() else { return }
+
+        // If last action was delete, remove from delete list
+        if let deletedAsset = last.deletedAsset {
+            assetsToDelete.removeAll { $0.localIdentifier == deletedAsset.localIdentifier }
         }
+
+        currentIndex = last.index
+        triggerHaptic(.rigid)
     }
 
     // MARK: - Execute Deletion
@@ -119,5 +145,12 @@ class PhotoManager: ObservableObject {
 
     func reset() async {
         await loadPhotosForDate(selectedDate)
+    }
+
+    // MARK: - Haptic Feedback
+
+    private func triggerHaptic(_ style: UIImpactFeedbackGenerator.FeedbackStyle) {
+        let generator = UIImpactFeedbackGenerator(style: style)
+        generator.impactOccurred()
     }
 }

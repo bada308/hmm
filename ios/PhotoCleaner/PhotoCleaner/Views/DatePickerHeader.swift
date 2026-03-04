@@ -10,42 +10,57 @@ struct DatePickerHeader: View {
     var body: some View {
         VStack(spacing: 8) {
             HStack {
+                // Previous day
                 Button {
                     changeDate(by: -1)
                 } label: {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.primary)
-                        .frame(width: 44, height: 44)
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundColor(AppTheme.primary)
+                        .frame(width: 40, height: 40)
+                        .background(AppTheme.primarySoft)
+                        .clipShape(Circle())
                 }
 
                 Spacer()
 
+                // Date display
                 Button {
-                    showDatePicker.toggle()
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                        showDatePicker.toggle()
+                    }
                 } label: {
-                    VStack(spacing: 2) {
+                    VStack(spacing: 4) {
                         Text(formattedDate)
-                            .font(.system(size: 22, weight: .bold))
-                            .foregroundColor(.primary)
-                        Text("이 날의 사진 \(photoCount)장")
-                            .font(.system(size: 14))
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 24, weight: .bold, design: .rounded))
+                            .foregroundColor(AppTheme.textPrimary)
+
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(AppTheme.primary)
+                                .frame(width: 6, height: 6)
+                            Text("이 날의 사진 \(photoCount)장")
+                                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                .foregroundColor(AppTheme.textSecondary)
+                        }
                     }
                 }
 
                 Spacer()
 
+                // Next day
                 Button {
                     changeDate(by: 1)
                 } label: {
                     Image(systemName: "chevron.right")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundColor(.primary)
-                        .frame(width: 44, height: 44)
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundColor(AppTheme.primary)
+                        .frame(width: 40, height: 40)
+                        .background(AppTheme.primarySoft)
+                        .clipShape(Circle())
                 }
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 16)
 
             if showDatePicker {
                 DatePicker(
@@ -54,16 +69,21 @@ struct DatePickerHeader: View {
                     displayedComponents: .date
                 )
                 .datePickerStyle(.graphical)
+                .tint(AppTheme.primary)
                 .labelsHidden()
                 .onChange(of: selectedDate) { _, newDate in
-                    showDatePicker = false
+                    withAnimation { showDatePicker = false }
                     onDateChanged(newDate)
                 }
-                .padding(.horizontal)
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(AppTheme.cardBackground)
+                .cornerRadius(AppTheme.cornerRadius)
+                .shadow(color: AppTheme.cardShadow, radius: 12, y: 4)
+                .padding(.horizontal, 16)
+                .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
         }
-        .animation(.easeInOut(duration: 0.3), value: showDatePicker)
     }
 
     private var formattedDate: String {

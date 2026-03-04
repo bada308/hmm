@@ -10,82 +10,112 @@ struct ResultView: View {
     @State private var showDeleteAlert = false
     @State private var deleteSuccess = false
     @State private var showResult = false
+    @State private var animateIn = false
 
     var body: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 0) {
             Spacer()
 
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 72))
-                .foregroundColor(.green)
+            // Success icon
+            ZStack {
+                Circle()
+                    .fill(AppTheme.keepSoft)
+                    .frame(width: 120, height: 120)
+                    .scaleEffect(animateIn ? 1 : 0.5)
+
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 64))
+                    .foregroundColor(AppTheme.keep)
+                    .scaleEffect(animateIn ? 1 : 0.3)
+            }
+            .animation(.spring(response: 0.5, dampingFraction: 0.6), value: animateIn)
 
             Text("정리 완료!")
-                .font(.system(size: 28, weight: .bold))
+                .font(.system(size: 28, weight: .bold, design: .rounded))
+                .foregroundColor(AppTheme.textPrimary)
+                .padding(.top, 20)
+                .opacity(animateIn ? 1 : 0)
+                .offset(y: animateIn ? 0 : 20)
+                .animation(.easeOut(duration: 0.4).delay(0.2), value: animateIn)
 
-            VStack(spacing: 12) {
-                HStack(spacing: 32) {
-                    VStack(spacing: 4) {
-                        Text("\(keptCount)")
-                            .font(.system(size: 36, weight: .bold))
-                            .foregroundColor(.green)
-                        Text("유지")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
+            // Stats cards
+            HStack(spacing: 16) {
+                // Kept
+                VStack(spacing: 8) {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(AppTheme.keep)
 
-                    Rectangle()
-                        .fill(Color(.separator))
-                        .frame(width: 1, height: 50)
+                    Text("\(keptCount)")
+                        .font(.system(size: 36, weight: .bold, design: .rounded))
+                        .foregroundColor(AppTheme.textPrimary)
 
-                    VStack(spacing: 4) {
-                        Text("\(deletedCount)")
-                            .font(.system(size: 36, weight: .bold))
-                            .foregroundColor(.red)
-                        Text("삭제 예정")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
+                    Text("유지")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundColor(AppTheme.textSecondary)
                 }
-                .padding(24)
-                .background(Color(.systemGray6))
-                .cornerRadius(16)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+                .background(AppTheme.keepSoft)
+                .cornerRadius(AppTheme.cornerRadius)
+
+                // Deleted
+                VStack(spacing: 8) {
+                    Image(systemName: "trash.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(AppTheme.delete)
+
+                    Text("\(deletedCount)")
+                        .font(.system(size: 36, weight: .bold, design: .rounded))
+                        .foregroundColor(AppTheme.textPrimary)
+
+                    Text("삭제 예정")
+                        .font(.system(size: 14, weight: .semibold, design: .rounded))
+                        .foregroundColor(AppTheme.textSecondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 20)
+                .background(AppTheme.deleteSoft)
+                .cornerRadius(AppTheme.cornerRadius)
             }
+            .padding(.horizontal, 24)
+            .padding(.top, 28)
+            .opacity(animateIn ? 1 : 0)
+            .offset(y: animateIn ? 0 : 30)
+            .animation(.easeOut(duration: 0.4).delay(0.35), value: animateIn)
 
             Spacer()
 
-            if deletedCount > 0 {
-                Button {
-                    showDeleteAlert = true
-                } label: {
-                    HStack {
-                        Image(systemName: "trash.fill")
-                        Text("\(deletedCount)장 삭제하기")
+            // Action buttons
+            VStack(spacing: 12) {
+                if deletedCount > 0 {
+                    Button {
+                        showDeleteAlert = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "trash.fill")
+                            Text("\(deletedCount)장 삭제하기")
+                        }
                     }
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color.red)
-                    .cornerRadius(14)
+                    .buttonStyle(PrimaryButtonStyle())
+                    .disabled(isDeleting)
                 }
-                .disabled(isDeleting)
-            }
 
-            Button {
-                Task {
-                    await onReset()
+                Button {
+                    Task { await onReset() }
+                } label: {
+                    Text("다시 하기")
                 }
-            } label: {
-                Text("다시 하기")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundColor(.primary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color(.systemGray5))
-                    .cornerRadius(14)
+                .buttonStyle(SecondaryButtonStyle())
             }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 32)
+            .opacity(animateIn ? 1 : 0)
+            .animation(.easeOut(duration: 0.4).delay(0.5), value: animateIn)
         }
-        .padding(24)
+        .onAppear {
+            animateIn = true
+        }
         .alert("사진 삭제", isPresented: $showDeleteAlert) {
             Button("취소", role: .cancel) {}
             Button("삭제", role: .destructive) {

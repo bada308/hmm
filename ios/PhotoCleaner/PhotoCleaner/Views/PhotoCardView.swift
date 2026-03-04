@@ -10,6 +10,10 @@ struct PhotoCardView: View {
     @State private var image: UIImage?
     @State private var isLoadingImage = true
 
+    private var dragProgress: CGFloat {
+        min(abs(offset.width) / 120, 1)
+    }
+
     private var swipeDirection: SwipeDirection {
         if offset.width > 50 { return .right }
         if offset.width < -50 { return .left }
@@ -23,83 +27,106 @@ struct PhotoCardView: View {
     var body: some View {
         GeometryReader { geo in
             ZStack {
+                // Card background
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(AppTheme.cardBackground)
+                    .shadow(color: AppTheme.cardShadow, radius: 16, x: 0, y: 8)
+
                 // Photo
-                if let image = image {
-                    Image(uiImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: geo.size.width, height: geo.size.height)
-                        .clipped()
-                } else if isLoadingImage {
-                    ProgressView()
-                        .scaleEffect(1.5)
-                        .frame(width: geo.size.width, height: geo.size.height)
-                        .background(Color(.systemGray6))
-                } else {
-                    Image(systemName: "photo")
-                        .font(.system(size: 60))
-                        .foregroundColor(.gray)
-                        .frame(width: geo.size.width, height: geo.size.height)
-                        .background(Color(.systemGray6))
-                }
+                VStack(spacing: 0) {
+                    ZStack {
+                        let imageWidth = max(geo.size.width - 16, 0)
+                        let imageHeight = max(geo.size.height - 100, 0)
 
-                // Overlay indicators
-                VStack {
-                    HStack {
-                        // DELETE label (left swipe)
-                        Text("삭제")
-                            .font(.system(size: 36, weight: .black))
-                            .foregroundColor(.red)
-                            .padding(8)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.red, lineWidth: 4)
-                            )
-                            .rotationEffect(.degrees(-15))
-                            .opacity(swipeDirection == .left ? min(Double(abs(offset.width)) / 100, 1) : 0)
-
-                        Spacer()
-
-                        // KEEP label (right swipe)
-                        Text("유지")
-                            .font(.system(size: 36, weight: .black))
-                            .foregroundColor(.green)
-                            .padding(8)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.green, lineWidth: 4)
-                            )
-                            .rotationEffect(.degrees(15))
-                            .opacity(swipeDirection == .right ? min(Double(abs(offset.width)) / 100, 1) : 0)
-                    }
-                    .padding(.top, 40)
-                    .padding(.horizontal, 20)
-
-                    Spacer()
-
-                    // Year & date label
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(yearString)
-                                .font(.system(size: 32, weight: .bold))
-                                .foregroundColor(.white)
-                            Text(dateString)
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.white.opacity(0.8))
+                        if let image = image {
+                            Image(uiImage: image)
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(width: imageWidth, height: imageHeight)
+                                .clipped()
+                                .cornerRadius(20)
+                        } else if isLoadingImage {
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(AppTheme.primarySoft)
+                                .frame(width: imageWidth, height: imageHeight)
+                                .overlay(
+                                    ProgressView()
+                                        .tint(AppTheme.primary)
+                                        .scaleEffect(1.3)
+                                )
+                        } else {
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(AppTheme.primarySoft)
+                                .frame(width: imageWidth, height: imageHeight)
+                                .overlay(
+                                    Image(systemName: "photo")
+                                        .font(.system(size: 48, design: .rounded))
+                                        .foregroundColor(AppTheme.textTertiary)
+                                )
                         }
-                        .padding(16)
-                        .background(.ultraThinMaterial)
-                        .cornerRadius(12)
 
-                        Spacer()
+                        // Swipe overlay indicators
+                        if swipeDirection == .right {
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(AppTheme.keep.opacity(0.2 * dragProgress))
+                                .frame(width: imageWidth, height: imageHeight)
+                                .overlay(
+                                    VStack(spacing: 8) {
+                                        Image(systemName: "heart.fill")
+                                            .font(.system(size: 48))
+                                        Text("유지")
+                                            .font(.system(size: 28, weight: .black, design: .rounded))
+                                    }
+                                    .foregroundColor(.white)
+                                    .opacity(dragProgress)
+                                )
+                        }
+
+                        if swipeDirection == .left {
+                            RoundedRectangle(cornerRadius: 20)
+                                .fill(AppTheme.delete.opacity(0.2 * dragProgress))
+                                .frame(width: imageWidth, height: imageHeight)
+                                .overlay(
+                                    VStack(spacing: 8) {
+                                        Image(systemName: "trash.fill")
+                                            .font(.system(size: 48))
+                                        Text("삭제")
+                                            .font(.system(size: 28, weight: .black, design: .rounded))
+                                    }
+                                    .foregroundColor(.white)
+                                    .opacity(dragProgress)
+                                )
+                        }
                     }
-                    .padding(20)
+                    .padding(.top, 8)
+                    .padding(.horizontal, 8)
+
+                    // Date info at bottom of card
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(yearString)
+                                .font(.system(size: 22, weight: .bold, design: .rounded))
+                                .foregroundColor(AppTheme.textPrimary)
+                            Text(dateString)
+                                .font(.system(size: 13, weight: .medium, design: .rounded))
+                                .foregroundColor(AppTheme.textSecondary)
+                        }
+                        Spacer()
+                        // Year pill badge
+                        Text(yearsAgoString)
+                            .font(.system(size: 13, weight: .semibold, design: .rounded))
+                            .foregroundColor(AppTheme.primary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(AppTheme.primarySoft)
+                            .cornerRadius(20)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
                 }
             }
-            .cornerRadius(20)
-            .shadow(radius: 8)
-            .offset(x: offset.width, y: offset.height * 0.3)
-            .rotationEffect(.degrees(Double(offset.width / 30)))
+            .offset(x: offset.width, y: offset.height * 0.2)
+            .rotationEffect(.degrees(Double(offset.width / 40)))
             .gesture(
                 DragGesture()
                     .onChanged { gesture in
@@ -107,7 +134,6 @@ struct PhotoCardView: View {
                     }
                     .onEnded { gesture in
                         if abs(gesture.translation.width) > 120 {
-                            // Swipe threshold met
                             let direction = gesture.translation.width > 0
                             withAnimation(.easeOut(duration: 0.3)) {
                                 offset = CGSize(
@@ -124,7 +150,6 @@ struct PhotoCardView: View {
                                 offset = .zero
                             }
                         } else {
-                            // Snap back
                             withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
                                 offset = .zero
                             }
@@ -146,6 +171,13 @@ struct PhotoCardView: View {
         formatter.locale = Locale(identifier: "ko_KR")
         formatter.dateFormat = "M월 d일 (E) a h:mm"
         return formatter.string(from: photoAsset.creationDate)
+    }
+
+    private var yearsAgoString: String {
+        let currentYear = Calendar.current.component(.year, from: Date())
+        let diff = currentYear - photoAsset.year
+        if diff == 0 { return "올해" }
+        return "\(diff)년 전"
     }
 
     private func loadImage() {
